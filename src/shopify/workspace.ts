@@ -32,14 +32,27 @@ export async function checkoutTaskBranch(repoPath: string, taskId: string): Prom
 export interface DiffSummary {
   statText: string
   filesChanged: string[]
+  insertions: number
+  deletions: number
 }
+
+const SHORTSTAT_RE = /(\d+) insertions?\(\+\)|(\d+) deletions?\(-\)/g
 
 /** Summarizes uncommitted changes in the workspace for the ClickUp comment (not the full patch). */
 export async function diffSummary(repoPath: string): Promise<DiffSummary> {
   await git(repoPath, ['add', '-A'])
   const statText = await git(repoPath, ['diff', '--cached', '--stat'])
   const nameOnly = await git(repoPath, ['diff', '--cached', '--name-only'])
-  return { statText, filesChanged: nameOnly.split('\n').filter(Boolean) }
+  const shortstat = await git(repoPath, ['diff', '--cached', '--shortstat'])
+
+  let insertions = 0
+  let deletions = 0
+  for (const match of shortstat.matchAll(SHORTSTAT_RE)) {
+    if (match[1]) insertions = Number(match[1])
+    if (match[2]) deletions = Number(match[2])
+  }
+
+  return { statText, filesChanged: nameOnly.split('\n').filter(Boolean), insertions, deletions }
 }
 
 export async function commitWorkspace(repoPath: string, message: string): Promise<void> {

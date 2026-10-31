@@ -21,9 +21,12 @@
     "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "@hono/node-server": "^1.13.0",
     "better-sqlite3": "^13.0.3",
+    "chrome-launcher": "^1.2.2",
     "execa": "^9.5.0",
     "hono": "^4.6.0",
+    "lighthouse": "^13.6.0",
     "pino": "^9.5.0",
+    "playwright": "^1.64.1",
     "yaml": "^2.9.1",
     "zod": "^3.23.8"
   },
