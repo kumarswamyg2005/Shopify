@@ -73,6 +73,16 @@ export class ShopifyAdminClient {
     return data.products.nodes
   }
 
+  async listProductsUnderPrice(maxPrice: number, limit = 100): Promise<Array<{ id: string; title: string; price: number }>> {
+    const data = await this.graphql<{ products: { nodes: Array<{ id: string; title: string; priceRangeV2: { maxVariantPrice: { amount: string } } }> } }>(
+      `query($n: Int!) { products(first: $n) { nodes { id title priceRangeV2 { maxVariantPrice { amount } } } } }`,
+      { n: limit },
+    )
+    return data.products.nodes
+      .map((p) => ({ id: p.id, title: p.title, price: Number(p.priceRangeV2.maxVariantPrice.amount) }))
+      .filter((p) => p.price < maxPrice)
+  }
+
   async getCollections(limit = 50): Promise<Array<{ id: string; title: string; handle: string }>> {
     const data = await this.graphql<{ collections: { nodes: Array<{ id: string; title: string; handle: string }> } }>(
       `query($n: Int!) { collections(first: $n) { nodes { id title handle } } }`,
@@ -140,6 +150,28 @@ export class ShopifyAdminClient {
       { id },
       'collectionDelete',
     )
+  }
+
+  async productCreate(input: { title: string; descriptionHtml: string; productType: string; tags: string[]; price: string; imageUrl: string }): Promise<{ id: string }> {
+    const data = await this.runMutation<{ productCreate: { product: { id: string; variants: { nodes: Array<{ id: string }> } } | null } }>(
+      `mutation($product: ProductCreateInput!, $media: [CreateMediaInput!]) { productCreate(product: $product, media: $media) { product { id variants(first: 1) { nodes { id } } } userErrors { field message } } }`,
+      {
+        product: { title: input.title, descriptionHtml: input.descriptionHtml, productType: input.productType, tags: input.tags, status: 'ACTIVE' },
+        media: [{ originalSource: input.imageUrl, mediaContentType: 'IMAGE', alt: input.title }],
+      },
+      'productCreate',
+    )
+    const product = data.productCreate.product
+    if (!product) throw new ShopifyAdminError('productCreate returned no product')
+    const variantId = product.variants.nodes[0]?.id
+    if (variantId) {
+      await this.runMutation(
+        `mutation($pid: ID!, $v: [ProductVariantsBulkInput!]!) { productVariantsBulkUpdate(productId: $pid, variants: $v) { userErrors { field message } } }`,
+        { pid: product.id, v: [{ id: variantId, price: input.price }] },
+        'productVariantsBulkUpdate',
+      )
+    }
+    return { id: product.id }
   }
 
   async metafieldsSet(input: { ownerId: string; namespace: string; key: string; type: string; value: string }): Promise<void> {

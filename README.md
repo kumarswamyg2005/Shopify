@@ -26,12 +26,20 @@ reasoning behind each piece: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
    list carrying six custom statuses (`agent queue`, `agent working`, `review`, `approved`,
    `live`, `blocked` — ClickUp's API can't create these, add them by hand in the list's status
    settings).
-2. `cp .env.example .env` and fill it in. `ANTHROPIC_API_KEY` is optional — leave it empty to run
-   the agent on the Claude Code CLI's own login on this machine instead of separate API billing.
-   `SHOPIFY_CLI_THEME_TOKEN` is the Theme Access password;
-   `SHOPIFY_ADMIN_API_TOKEN` is the custom app's install token, not the OAuth client secret.
-3. **Also disable the dev store's storefront password** (Online Store → Preferences) — otherwise
-   every preview/live screenshot and Lighthouse run hits a password wall instead of the theme.
+2. `cp .env.example .env` and fill it in. **Nothing here costs money.** Optional keys:
+
+   | Variable | Needed for | Default behaviour if empty |
+   |---|---|---|
+   | `STORELOOP_AGENT` | `demo` (rule-based, no LLM, free) or `claude` (real Claude agent) | `demo` |
+   | `ANTHROPIC_API_KEY` | `claude` mode only; leave empty to use the Claude Code CLI login | not used |
+   | `SHOPIFY_ADMIN_API_TOKEN` | admin tasks (tag/collection/redirect plans) and `seed-products` | theme tasks still work; admin tasks post a clear "token not set" blocker |
+   | `STOREFRONT_PASSWORD` | dev stores can't disable their password page; this lets screenshots and Lighthouse past it | previews show the password page |
+
+   `SHOPIFY_CLI_THEME_TOKEN` is the Theme Access password; `SHOPIFY_ADMIN_API_TOKEN` is the custom
+   app's install token, not the OAuth client secret.
+3. Optional: `npm run seed-products` adds 12 sample products (via the Admin API if the token is set,
+   otherwise it writes `data/products.csv` for Shopify's Products → Import). Dev stores usually
+   already ship with sample products.
 4. `npm ci`
 5. `npm run dev` — starts the Hono server + worker on `PORT` (default 8787).
 6. In another terminal: `cloudflared tunnel --url http://localhost:8787`, then
@@ -72,7 +80,7 @@ reasoning behind each piece: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 ## Adapter roadmap
 
 `src/adapters/types.ts` defines the platform-agnostic interface (`plan` / `preview` / `apply` /
-`rollback`). Shopify (theme + admin) is fully implemented; Storyblok, Sanity, Craft, Vercel, and
+`rollback`). Shopify (theme + admin) is fully implemented, and the default `demo` agent runs the whole loop with no LLM; Storyblok, Sanity, Craft, Vercel, and
 Netlify are typed stubs mapping the same loop to each platform's native preview concept — see the
 comment on each stub for specifics.
 

@@ -1,0 +1,122 @@
+[
+  {
+    "title": "Linen Market Tote",
+    "description": "Everyday carry in washed Belgian linen with a reinforced base.",
+    "productType": "Bags",
+    "price": "38.00",
+    "tags": [
+      "bags"
+    ],
+    "image": "https://placehold.co/1000x1000/EDE6DA/3a342c.png?text=Linen+Tote"
+  },
+  {
+    "title": "Stoneware Pour-Over Set",
+    "description": "Hand-glazed dripper and carafe in a matte oat finish.",
+    "productType": "Kitchen",
+    "price": "64.00",
+    "tags": [
+      "kitchen"
+    ],
+    "image": "https://placehold.co/1000x1000/D9CFC1/3a342c.png?text=Pour-Over"
+  },
+  {
+    "title": "Wool Throw Blanket",
+    "description": "Heavyweight merino-blend throw, woven in Portugal.",
+    "productType": "Home",
+    "price": "142.00",
+    "tags": [
+      "home"
+    ],
+    "image": "https://placehold.co/1000x1000/CFC5B6/3a342c.png?text=Wool+Throw"
+  },
+  {
+    "title": "Beeswax Taper Candles (set of 6)",
+    "description": "Slow-burning, unscented, dipped by hand.",
+    "productType": "Home",
+    "price": "24.00",
+    "tags": [
+      "home"
+    ],
+    "image": "https://placehold.co/1000x1000/F1E8D2/3a342c.png?text=Taper+Candles"
+  },
+  {
+    "title": "Oak Serving Board",
+    "description": "Solid white oak, finished with food-safe oil.",
+    "productType": "Kitchen",
+    "price": "58.00",
+    "tags": [
+      "kitchen"
+    ],
+    "image": "https://placehold.co/1000x1000/CDB894/3a342c.png?text=Oak+Board"
+  },
+  {
+    "title": "Cotton Waffle Bath Towel",
+    "description": "Quick-drying 100% organic cotton, 700gsm.",
+    "productType": "Bath",
+    "price": "46.00",
+    "tags": [
+      "bath"
+    ],
+    "image": "https://placehold.co/1000x1000/E3DDD3/3a342c.png?text=Bath+Towel"
+  },
+  {
+    "title": "Ceramic Table Lamp",
+    "description": "Hand-thrown base with a pleated linen shade.",
+    "productType": "Lighting",
+    "price": "189.00",
+    "tags": [
+      "lighting"
+    ],
+    "image": "https://placehold.co/1000x1000/D6CCBE/3a342c.png?text=Table+Lamp"
+  },
+  {
+    "title": "Leather Card Wallet",
+    "description": "Vegetable-tanned leather that darkens with age.",
+    "productType": "Accessories",
+    "price": "52.00",
+    "tags": [
+      "accessories"
+    ],
+    "image": "https://placehold.co/1000x1000/BFA98A/3a342c.png?text=Card+Wallet"
+  },
+  {
+    "title": "Brass Desk Organizer",
+    "description": "Solid brass, three compartments, unlacquered patina.",
+    "productType": "Office",
+    "price": "96.00",
+    "tags": [
+      "office"
+    ],
+    "image": "https://placehold.co/1000x1000/CBB88A/3a342c.png?text=Desk+Organizer"
+  },
+  {
+    "title": "Merino Beanie",
+    "description": "Ribbed, mid-weight, one size.",
+    "productType": "Accessories",
+    "price": "34.00",
+    "tags": [
+      "accessories"
+    ],
+    "image": "https://placehold.co/1000x1000/D0C8BC/3a342c.png?text=Merino+Beanie"
+  },
+  {
+    "title": "Glass Carafe & Tumbler",
+    "description": "Mouth-blown borosilicate, dishwasher safe.",
+    "productType": "Kitchen",
+    "price": "42.00",
+    "tags": [
+      "kitchen"
+    ],
+    "image": "https://placehold.co/1000x1000/DCE3E0/3a342c.png?text=Carafe"
+  },
+  {
+    "title": "Walnut Cutting Block",
+    "description": "End-grain walnut with juice groove, 18in.",
+    "productType": "Kitchen",
+    "price": "128.00",
+    "tags": [
+      "kitchen"
+    ],
+    "image": "https://placehold.co/1000x1000/B79F82/3a342c.png?text=Cutting+Block"
+  }
+]

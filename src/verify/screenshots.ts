@@ -1,5 +1,6 @@
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
+import { unlockStorefront } from './unlock.js'
 
 const VIEWPORTS = {
   desktop: { width: 1440, height: 900 },
@@ -19,7 +20,7 @@ export async function captureScreenshots(url: string, outDir: string, prefix: st
     const paths: Partial<Screenshots> = {}
     for (const [name, viewport] of Object.entries(VIEWPORTS) as Array<[keyof Screenshots, { width: number; height: number }]>) {
       const page = await browser.newPage({ viewport })
-      await page.goto(url, { waitUntil: 'load', timeout: 30_000 })
+      await unlockStorefront(page, url)
       const path = `${outDir}/${prefix}-${name}.png`
       await page.screenshot({ path, fullPage: false })
       await page.close()

@@ -6,12 +6,18 @@ const schema = z.object({
   // machine (e.g. a Claude.ai subscription session via `claude login`). Only set this if you
   // want the agent billed on a separate Anthropic API account rather than the CLI's own login.
   ANTHROPIC_API_KEY: z.string().optional(),
+  // 'demo' = rule-based agent, no LLM, no cost. 'claude' = the real Claude agent (needs the CLI login or a key).
+  STORELOOP_AGENT: z.enum(['demo', 'claude']).default('demo'),
   STORELOOP_MODEL: z.string().default('claude-sonnet-5'),
 
   SHOPIFY_STORE: z.string().min(1).endsWith('.myshopify.com'),
   SHOPIFY_API_VERSION: z.string().min(1),
-  SHOPIFY_ADMIN_API_TOKEN: z.string().min(1),
+  // Optional: only admin tasks and `seed-products` need it; theme tasks run without.
+  SHOPIFY_ADMIN_API_TOKEN: z.string().optional(),
   SHOPIFY_CLI_THEME_TOKEN: z.string().min(1),
+
+  // Optional: the dev store's storefront password, so screenshots/Lighthouse get past the password page.
+  STOREFRONT_PASSWORD: z.string().optional(),
 
   CLICKUP_API_TOKEN: z.string().min(1),
   CLICKUP_WORKSPACE_ID: z.string().min(1),

@@ -6,6 +6,7 @@ import { pushUnpublished, pushToExistingTheme, ThemePushFailedError, ShopifyCliE
 import { publishApprovedTheme, PlanHashMismatchError } from '../shopify/publish.js'
 import { executeApprovedAdminPlan } from '../shopify/admin-execute.js'
 import { ShopifyAdminClient } from '../shopify/admin.js'
+import { runDemoThemeAgent, runDemoAdminAgent } from '../agent/demo-agent.js'
 import { runThemeAgent } from '../agent/theme-agent.js'
 import { runAdminAgent, adminAgentResultSchema, type AdminAgentResult } from '../agent/admin-agent.js'
 import { captureScreenshots } from '../verify/screenshots.js'
@@ -37,8 +38,9 @@ export interface WorkerDeps {
   db: Database.Database
   clickUp: ClickUpClient
   model: string
+  agent: 'demo' | 'claude'
   shopifyApiVersion: string
-  shopifyAdminApiToken: string
+  shopifyAdminApiToken: string | undefined
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -53,15 +55,23 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
   }
 }
 
+function makeAdminClient(deps: WorkerDeps, client: ClientConfig): ShopifyAdminClient {
+  if (!deps.shopifyAdminApiToken) {
+    throw new Error('This is an admin task but SHOPIFY_ADMIN_API_TOKEN is not set. Add it to .env and re-queue the task.')
+  }
+  return new ShopifyAdminClient({
+    store: client.shopifyStore,
+    apiVersion: deps.shopifyApiVersion,
+    adminApiToken: deps.shopifyAdminApiToken,
+  })
+}
+
 function shopifyCliConfig(client: ClientConfig, themeToken: string): ShopifyCliConfig {
   return { store: client.shopifyStore, themeToken }
 }
 
-async function fetchPriorComments(_clickUp: ClickUpClient, _taskId: string): Promise<string[]> {
-  // ponytail: ClickUpClient has no "list comments" method yet (StoreLoop only ever posts its own
-  // comments and reads the triggering one from the webhook payload); add listComments() if a
-  // real revision round needs the full history rather than just the latest human comment.
-  return []
+async function fetchPriorComments(clickUp: ClickUpClient, taskId: string): Promise<string[]> {
+  return clickUp.listComments(taskId)
 }
 
 async function postBlocked(clickUp: ClickUpClient, taskId: string, reason: string): Promise<void> {
@@ -160,7 +170,7 @@ async function processThemeRound(
   const deniedCommands: string[] = []
   const startedAt = Date.now()
   const agentResult = await withTimeout(
-    runThemeAgent({
+    (deps.agent === 'demo' ? runDemoThemeAgent : runThemeAgent)({
       taskTitle: task.name,
       taskDescription: task.text_content,
       priorComments,
@@ -282,16 +292,12 @@ async function processAdminRound(
 ): Promise<void> {
   const { db, clickUp } = deps
   const taskId = job.clickupTaskId
-  const adminClient = new ShopifyAdminClient({
-    store: client.shopifyStore,
-    apiVersion: deps.shopifyApiVersion,
-    adminApiToken: deps.shopifyAdminApiToken,
-  })
+  const adminClient = makeAdminClient(deps, client)
   const runsDir = `runs/${taskId}`
 
   const startedAt = Date.now()
   const plan = await withTimeout(
-    runAdminAgent({ taskTitle: task.name, taskDescription: task.text_content, priorComments, runsDir, model: deps.model, adminClient }),
+    (deps.agent === 'demo' ? runDemoAdminAgent : runAdminAgent)({ taskTitle: task.name, taskDescription: task.text_content, priorComments, runsDir, model: deps.model, adminClient }),
     AGENT_TIMEOUT_MS,
     'admin agent run',
   )
@@ -348,11 +354,7 @@ async function processExecute(deps: WorkerDeps, job: Job): Promise<void> {
   const state = getTaskState(db, taskId)
   if (!state) throw new Error('no task_state for execute job')
   const client = loadClientConfig(`clients/${state.clientId}.yaml`)
-  const adminClient = new ShopifyAdminClient({
-    store: client.shopifyStore,
-    apiVersion: deps.shopifyApiVersion,
-    adminApiToken: deps.shopifyAdminApiToken,
-  })
+  const adminClient = makeAdminClient(deps, client)
 
   const planRow = db.prepare(
     `SELECT plan_json FROM jobs WHERE clickup_task_id = ? AND plan_json IS NOT NULL ORDER BY created_at DESC LIMIT 1`,

@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "register-webhook": "tsx --env-file=.env scripts/register-webhook.ts",
     "demo-reset": "tsx --env-file=.env scripts/demo-reset.ts",
+    "seed-products": "tsx --env-file=.env scripts/seed-products.ts",
     "seed-tasks": "tsx --env-file=.env scripts/seed-tasks.ts"
   },
   "dependencies": {

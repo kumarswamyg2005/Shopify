@@ -48,7 +48,7 @@ const app = createApp({
 })
 
 const stopWorker = startWorker(
-  { db, clickUp, model: env.STORELOOP_MODEL, shopifyApiVersion: env.SHOPIFY_API_VERSION, shopifyAdminApiToken: env.SHOPIFY_ADMIN_API_TOKEN },
+  { db, clickUp, model: env.STORELOOP_MODEL, agent: env.STORELOOP_AGENT, shopifyApiVersion: env.SHOPIFY_API_VERSION, shopifyAdminApiToken: env.SHOPIFY_ADMIN_API_TOKEN },
   env.SHOPIFY_CLI_THEME_TOKEN,
 )
 

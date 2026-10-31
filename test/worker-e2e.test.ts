@@ -47,6 +47,7 @@ function fakeClickUp(taskName = 'Holiday announcement bar') {
       setStatus: vi.fn(async (_id: string, status: string) => {
         calls.statuses.push(status)
       }),
+      listComments: vi.fn(async () => [] as string[]),
       createComment: vi.fn(async (_id: string, text: string) => {
         calls.comments.push(text)
         return { id: 'comment_1' }
@@ -63,7 +64,7 @@ function fakeClickUp(taskName = 'Holiday announcement bar') {
 function makeDeps(clickUp: ReturnType<typeof fakeClickUp>['client']) {
   const db = new Database(':memory:')
   migrate(db)
-  return { deps: { db, clickUp: clickUp as never, model: 'claude-sonnet-5', shopifyApiVersion: '2026-10', shopifyAdminApiToken: 'x' }, db }
+  return { deps: { db, clickUp: clickUp as never, model: 'claude-sonnet-5', agent: 'claude' as const, shopifyApiVersion: '2026-10', shopifyAdminApiToken: 'x' }, db }
 }
 
 beforeEach(() => {

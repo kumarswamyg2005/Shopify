@@ -74,6 +74,15 @@ export class ClickUpClient {
     return this.json(`/task/${taskId}`)
   }
 
+  /** Human comments on a task, oldest first — StoreLoop's own `[StoreLoop]` comments are excluded. */
+  async listComments(taskId: string): Promise<string[]> {
+    const data = await this.json<{ comments: Array<{ comment_text: string; date: string }> }>(`/task/${taskId}/comment`)
+    return data.comments
+      .filter((c) => !c.comment_text.startsWith('[StoreLoop]'))
+      .sort((a, b) => Number(a.date) - Number(b.date))
+      .map((c) => c.comment_text.trim())
+  }
+
   async getList(listId: string): Promise<{ id: string; space: { id: string } }> {
     return this.json(`/list/${listId}`)
   }
