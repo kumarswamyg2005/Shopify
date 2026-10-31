@@ -61,9 +61,11 @@ export function checkCommand(command: string, workspaceRoot: string): CommandChe
     }
   }
 
+  // Every token is checked, not just ones containing '/': a bare `..` (e.g. `cd ..`) has no
+  // slash and would otherwise slip past this guard entirely.
   const root = resolve(workspaceRoot)
   for (const token of command.split(/\s+/)) {
-    if (!token.includes('/')) continue
+    if (token === '') continue
     const candidate = isAbsolute(token) ? token : resolve(root, token)
     const rel = relative(root, candidate)
     if (rel.startsWith('..')) {

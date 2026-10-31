@@ -2,7 +2,7 @@ import { logger } from '../logger.js'
 import { ClickUpClient } from '../clickup/client.js'
 import { loadClientConfig, type ClientConfig } from '../clients/config.js'
 import { ensureWorkspace, checkoutTaskBranch, diffSummary, commitWorkspace } from '../shopify/workspace.js'
-import { pushUnpublished, pushToExistingTheme, ThemePushFailedError, type ShopifyCliConfig } from '../shopify/theme.js'
+import { pushUnpublished, pushToExistingTheme, ThemePushFailedError, ShopifyCliError, type ShopifyCliConfig } from '../shopify/theme.js'
 import { publishApprovedTheme, PlanHashMismatchError } from '../shopify/publish.js'
 import { executeApprovedAdminPlan } from '../shopify/admin-execute.js'
 import { ShopifyAdminClient } from '../shopify/admin.js'
@@ -203,7 +203,7 @@ async function processThemeRound(
         ? await pushUnpublished(cliConfig, client.themeRepoPath, `SL-${taskId}`)
         : await pushToExistingTheme(cliConfig, client.themeRepoPath, state.unpublishedThemeId)
   } catch (err) {
-    if (err instanceof ThemePushFailedError) {
+    if (err instanceof ThemePushFailedError || err instanceof ShopifyCliError) {
       await postBlocked(clickUp, taskId, `theme check / push failed: ${err.message}`)
       updateJob(db, job.id, { status: 'failed', error: err.message, finished: true })
       return

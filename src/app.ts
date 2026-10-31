@@ -7,6 +7,8 @@ import { clickUpWebhookEventSchema, routeEvent, verifySignature } from './webhoo
 import { readFile } from 'node:fs/promises'
 import { recordWebhookEvent, enqueueJob, queueDepth, lastJobAt, getTaskState, listRecentJobs, getJob, listAuditForJob } from './db.js'
 import { renderRunsList, renderJobDetail } from './runs/render.js'
+import { clientIdSchema } from './clients/config.js'
+import { logger } from './logger.js'
 
 export interface AppDeps {
   db: Database.Database
@@ -86,7 +88,7 @@ export function createApp(deps: AppDeps) {
     return c.json({ action: decision.action })
   })
 
-  const registerWebhookBody = z.object({ clientId: z.string(), endpointUrl: z.string().url() })
+  const registerWebhookBody = z.object({ clientId: clientIdSchema, endpointUrl: z.string().url() })
 
   app.post(
     '/admin/register-webhook',
@@ -98,7 +100,10 @@ export function createApp(deps: AppDeps) {
         const { webhookId } = await deps.registerWebhook(parsed.data)
         return c.json({ ok: true, webhookId })
       } catch (err) {
-        return c.json({ ok: false, error: (err as Error).message }, 500)
+        // Deliberately generic: the underlying error can include filesystem/parse details from
+        // loadClientConfig that shouldn't be echoed back over this authenticated-but-external API.
+        logger.error({ err: (err as Error).message }, 'register-webhook failed')
+        return c.json({ ok: false, error: 'registration failed — see server logs' }, 500)
       }
     },
   )
@@ -121,6 +126,10 @@ export function createApp(deps: AppDeps) {
   app.get('/runs/:jobId/shot/:name', runsAuth, async (c) => {
     const job = getJob(deps.db, c.req.param('jobId'))
     if (!job || !job.round) return c.text('not found', 404)
+    // job.clickupTaskId comes from the webhook payload (external input) and is used below to
+    // build a filesystem path — validated here, at the point it becomes one, the same way `name`
+    // already is, rather than trusting it stayed clean since ingestion.
+    if (!/^[\w-]+$/.test(job.clickupTaskId)) return c.text('not found', 404)
     const name = c.req.param('name')
     if (!/^[\w-]+\.png$/.test(name)) return c.text('not found', 404)
     try {

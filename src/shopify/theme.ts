@@ -18,11 +18,30 @@ export class ThemePushFailedError extends Error {
   }
 }
 
-function run(config: ShopifyCliConfig, args: string[], cwd?: string) {
-  return execa('shopify', [...args, '--store', config.store, '--password', config.themeToken, '--no-input'], {
-    ...(cwd ? { cwd } : {}),
-    env: { SHOPIFY_CLI_THEME_TOKEN: config.themeToken },
-  })
+/** A `shopify` CLI invocation exited non-zero. Never carries the raw execa error (see `run`). */
+export class ShopifyCliError extends Error {
+  constructor(message: string) {
+    super(message)
+  }
+}
+
+/**
+ * The theme token is passed only via env, never as a `--password` arg: execa's own error
+ * messages (and anything downstream that logs err.message — the worker, the audit trail, the
+ * ClickUp "blocked" comment) include the full command line, and invariant 9 forbids the token
+ * ever reaching any of those. On failure we also rethrow our own message instead of execa's, as
+ * a second layer against a future flag reintroducing a secret into argv.
+ */
+async function run(config: ShopifyCliConfig, args: string[], cwd?: string) {
+  try {
+    return await execa('shopify', [...args, '--store', config.store, '--no-input'], {
+      ...(cwd ? { cwd } : {}),
+      env: { SHOPIFY_CLI_THEME_TOKEN: config.themeToken },
+    })
+  } catch (err) {
+    const exitCode = err && typeof err === 'object' && 'exitCode' in err ? err.exitCode : 'unknown'
+    throw new ShopifyCliError(`shopify ${args[0]} ${args[1] ?? ''} failed (exit ${exitCode})`)
+  }
 }
 
 function parseJsonStdout<T>(stdout: string): T {
@@ -129,15 +148,20 @@ export async function publishTheme(config: ShopifyCliConfig, themeId: string): P
   await run(config, ['theme', 'publish', '--theme', themeId, '--force'])
 }
 
+export async function getLiveThemeId(config: ShopifyCliConfig): Promise<string | null> {
+  const themes = await listThemes(config)
+  const live = themes.find((t) => t.role === 'live')
+  return live ? live.id : null
+}
+
 const themeListSchema = z.object({
-  themes: z.array(z.object({ id: z.union([z.string(), z.number()]), role: z.string() })),
+  themes: z.array(z.object({ id: z.union([z.string(), z.number()]), name: z.string(), role: z.string() })),
 })
 
-export async function getLiveThemeId(config: ShopifyCliConfig): Promise<string | null> {
+export async function listThemes(config: ShopifyCliConfig): Promise<Array<{ id: string; name: string; role: string }>> {
   const { stdout } = await run(config, ['theme', 'list', '--json'])
   const parsed = themeListSchema.parse(parseJsonStdout(stdout))
-  const live = parsed.themes.find((t) => t.role === 'live')
-  return live ? String(live.id) : null
+  return parsed.themes.map((t) => ({ id: String(t.id), name: t.name, role: t.role }))
 }
 
 export async function deleteUnpublishedTheme(config: ShopifyCliConfig, themeId: string): Promise<void> {

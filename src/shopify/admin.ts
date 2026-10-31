@@ -127,6 +127,21 @@ export class ShopifyAdminClient {
     return data.urlRedirectCreate.urlRedirect
   }
 
+  // --- operator-only (scripts/demo-reset.ts only — never exposed to the agent or its allow-list) ---
+
+  async findCollectionByTitle(title: string): Promise<{ id: string } | null> {
+    const collections = await this.getCollections(250)
+    return collections.find((c) => c.title === title) ?? null
+  }
+
+  async collectionDelete(id: string): Promise<void> {
+    await this.runMutation(
+      `mutation($id: ID!) { collectionDelete(input: { id: $id }) { deletedCollectionId userErrors { field message } } }`,
+      { id },
+      'collectionDelete',
+    )
+  }
+
   async metafieldsSet(input: { ownerId: string; namespace: string; key: string; type: string; value: string }): Promise<void> {
     await this.runMutation(
       `mutation($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { userErrors { field message } } }`,

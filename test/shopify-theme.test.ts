@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const execaMock = vi.fn()
 vi.mock('execa', () => ({ execa: (...args: unknown[]) => execaMock(...args) }))
 
-const { pushUnpublished, themeCheck, ThemeCheckFailedError, ThemePushFailedError } = await import('../src/shopify/theme.js')
+const { pushUnpublished, themeCheck, getLiveThemeId, ThemeCheckFailedError, ThemePushFailedError, ShopifyCliError } =
+  await import('../src/shopify/theme.js')
 
 const config = { store: 'storeloop-demo.myshopify.com', themeToken: 'test-token' }
 
@@ -34,6 +35,22 @@ describe('pushUnpublished', () => {
   it('throws if the CLI prints no JSON at all', async () => {
     execaMock.mockResolvedValue({ stdout: 'not json' })
     await expect(pushUnpublished(config, '/workspace', 'SL-1')).rejects.toThrow(ThemePushFailedError)
+  })
+
+  it('never passes the token as a CLI arg, and a CLI failure never leaks it', async () => {
+    execaMock.mockImplementation((_cmd: string, args: string[]) => {
+      // simulates execa's real behavior: its thrown error embeds the full argv it was given
+      const err = new Error(`Command failed with exit code 1: shopify ${args.join(' ')}`) as Error & { exitCode: number }
+      err.exitCode = 1
+      return Promise.reject(err)
+    })
+    const caught: Error = await getLiveThemeId(config).catch((e: Error) => e)
+    expect(caught).toBeInstanceOf(ShopifyCliError)
+    expect(caught.message).not.toContain(config.themeToken)
+
+    const args = execaMock.mock.calls[0]![1] as string[]
+    expect(args).not.toContain('--password')
+    expect(args).not.toContain(config.themeToken)
   })
 })
 

@@ -21,6 +21,15 @@ describe('checkCommand', () => {
     expect(checkCommand('cat ../../secrets.env', root).allowed).toBe(false)
   })
 
+  it('denies a bare ".." token even with no slash (e.g. `cd ..`)', () => {
+    expect(checkCommand('cd ..', root).allowed).toBe(false)
+    expect(checkCommand('cd .. && cat .env', root).allowed).toBe(false)
+  })
+
+  it('allows a bare filename that stays inside the workspace', () => {
+    expect(checkCommand('cat .env', root).allowed).toBe(true)
+  })
+
   it('allows safe commands inside the workspace', () => {
     expect(checkCommand('shopify theme check', root).allowed).toBe(true)
     expect(checkCommand('cat sections/header.liquid', root).allowed).toBe(true)
