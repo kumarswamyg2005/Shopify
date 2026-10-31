@@ -78,11 +78,22 @@ export class ClickUpClient {
     return this.json(`/list/${listId}`)
   }
 
+  /** Retries up to 3 times on any failure — a lost ClickUp comment is the whole point of the loop. */
   async createComment(taskId: string, commentText: string): Promise<{ id: string }> {
-    return this.json(`/task/${taskId}/comment`, {
-      method: 'POST',
-      body: JSON.stringify({ comment_text: commentText }),
-    })
+    const attempts = 3
+    let lastErr: unknown
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await this.json(`/task/${taskId}/comment`, {
+          method: 'POST',
+          body: JSON.stringify({ comment_text: commentText }),
+        })
+      } catch (err) {
+        lastErr = err
+        if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 500 * attempt))
+      }
+    }
+    throw lastErr
   }
 
   async setStatus(taskId: string, status: string): Promise<void> {

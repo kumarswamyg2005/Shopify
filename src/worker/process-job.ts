@@ -157,6 +157,7 @@ async function processThemeRound(
   await ensureWorkspace(client.themeRepoPath, cliConfig)
   const branch = await checkoutTaskBranch(client.themeRepoPath, taskId)
 
+  const deniedCommands: string[] = []
   const startedAt = Date.now()
   const agentResult = await withTimeout(
     runThemeAgent({
@@ -166,14 +167,16 @@ async function processThemeRound(
       brandFilePath: client.brandFilePath,
       workspaceDir: client.themeRepoPath,
       model: deps.model,
-      onDenied: (denied) =>
+      onDenied: (denied) => {
+        deniedCommands.push(`${denied.toolName}: ${denied.reason}`)
         writeAudit(db, {
           jobId: job.id,
           tool: denied.toolName,
           summary: `denied: ${denied.reason}`,
           ok: false,
           durationMs: 0,
-        }),
+        })
+      },
     }),
     AGENT_TIMEOUT_MS,
     'theme agent run',
@@ -236,7 +239,10 @@ async function processThemeRound(
     themeCheckErrorCount: 0,
     lighthouseBefore: before.performanceScore,
     lighthouseAfter: after.performanceScore,
-    assumptions: agentResult.assumptions,
+    assumptions:
+      deniedCommands.length > 0
+        ? [...agentResult.assumptions, `blocked by policy guardrail: ${deniedCommands.join('; ')}`]
+        : agentResult.assumptions,
     questionsForHuman: agentResult.questionsForHuman,
     screenshotFilenames: [beforeShots.desktop, beforeShots.mobile, afterShots.desktop, afterShots.mobile].map((p) => p.split('/').pop()!),
     agentTimeMs,
