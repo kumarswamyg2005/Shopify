@@ -90,12 +90,14 @@ export interface JobInput {
   id: string
   clickupTaskId: string
   kind: 'initial' | 'revision' | 'publish' | 'execute'
+  clientId?: string | undefined
+  planHash?: string | undefined
 }
 
 export function enqueueJob(db: Database.Database, input: JobInput): void {
   db.prepare(
-    `INSERT INTO jobs (id, clickup_task_id, kind, status) VALUES (?, ?, ?, 'queued')`,
-  ).run(input.id, input.clickupTaskId, input.kind)
+    `INSERT INTO jobs (id, clickup_task_id, kind, status, client_id, plan_hash) VALUES (?, ?, ?, 'queued', ?, ?)`,
+  ).run(input.id, input.clickupTaskId, input.kind, input.clientId ?? null, input.planHash ?? null)
 }
 
 export function queueDepth(db: Database.Database): number {

@@ -68,7 +68,9 @@ export class ClickUpClient {
     return (await res.json()) as T
   }
 
-  async getTask(taskId: string): Promise<{ id: string; status: { status: string } }> {
+  async getTask(
+    taskId: string,
+  ): Promise<{ id: string; name: string; text_content: string; status: { status: string }; tags: Array<{ name: string }> }> {
     return this.json(`/task/${taskId}`)
   }
 

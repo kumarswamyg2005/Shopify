@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import type Database from 'better-sqlite3'
 import { z } from 'zod'
 import { clickUpWebhookEventSchema, routeEvent, verifySignature } from './webhooks/clickup.js'
-import { recordWebhookEvent, enqueueJob, queueDepth, lastJobAt } from './db.js'
+import { recordWebhookEvent, enqueueJob, queueDepth, lastJobAt, getTaskState } from './db.js'
 
 export interface AppDeps {
   db: Database.Database
@@ -16,12 +16,8 @@ export interface AppDeps {
 }
 
 function jobKindForApproval(db: Database.Database, taskId: string): 'publish' | 'execute' {
-  const row = db.prepare('SELECT type FROM task_state WHERE clickup_task_id = ?').get(taskId) as
-    | { type: 'theme' | 'admin' | null }
-    | undefined
-  // ponytail: task_state isn't populated until the initial-job step writes it (later build step);
-  // default to 'publish' until then rather than adding a lookup path that can't be hit yet.
-  return row?.type === 'admin' ? 'execute' : 'publish'
+  const state = getTaskState(db, taskId)
+  return state?.type === 'admin' ? 'execute' : 'publish'
 }
 
 export function createApp(deps: AppDeps) {
@@ -58,9 +54,9 @@ export function createApp(deps: AppDeps) {
       return c.json({ action: 'ignore', reason: 'duplicate history item' })
     }
 
-    const knownWebhook = deps.resolveWebhook(event.webhook_id) !== undefined
+    const webhook = deps.resolveWebhook(event.webhook_id)
     const currentStatus = deps.getCurrentStatus(event.task_id)
-    const decision = routeEvent(event, { knownWebhook, currentStatus })
+    const decision = routeEvent(event, { knownWebhook: webhook !== undefined, currentStatus })
 
     if (decision.action === 'ignore') {
       return c.json({ action: decision.action, reason: decision.reason })
@@ -73,7 +69,18 @@ export function createApp(deps: AppDeps) {
           ? 'revision'
           : jobKindForApproval(deps.db, event.task_id)
 
-    enqueueJob(deps.db, { id: randomUUID(), clickupTaskId: event.task_id, kind })
+    // Snapshot the plan hash the human is approving right now (invariant 2): if a revision runs
+    // after this but before the publish/execute job executes, the snapshot and task_state's
+    // current hash will disagree and src/shopify/publish.ts will refuse to publish the stale one.
+    const planHash = decision.action === 'enqueue_approved' ? (getTaskState(deps.db, event.task_id)?.approvedPlanHash ?? undefined) : undefined
+
+    enqueueJob(deps.db, {
+      id: randomUUID(),
+      clickupTaskId: event.task_id,
+      kind,
+      clientId: webhook?.clientId,
+      planHash,
+    })
     return c.json({ action: decision.action })
   })
 

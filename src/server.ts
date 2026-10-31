@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server'
 import { env } from './env.js'
 import { logger } from './logger.js'
-import { openDb } from './db.js'
+import { openDb, getTaskState } from './db.js'
 import { createApp } from './app.js'
 import {
   readWebhookSecret,
@@ -12,6 +12,7 @@ import {
 } from './webhooks/secret.js'
 import { ClickUpClient } from './clickup/client.js'
 import { loadClientConfig } from './clients/config.js'
+import { startWorker } from './worker/loop.js'
 
 const db = openDb('data/storeloop.db')
 const clickUp = new ClickUpClient({ apiToken: env.CLICKUP_API_TOKEN, teamId: env.CLICKUP_WORKSPACE_ID })
@@ -25,11 +26,8 @@ function resolveWebhook(webhookId: string): { clientId: string } | undefined {
   return reg ? { clientId: reg.clientId } : undefined
 }
 
-// ponytail: task_state doesn't track live ClickUp status yet (lands with the job-processing
-// worker in a later build step); until then, comments never match "review" and revisions are
-// never enqueued.
-function getCurrentStatus(_taskId: string): string | undefined {
-  return undefined
+function getCurrentStatus(taskId: string): string | undefined {
+  return getTaskState(db, taskId)?.status ?? undefined
 }
 
 async function registerWebhook(input: { clientId: string; endpointUrl: string }): Promise<{ webhookId: string }> {
@@ -49,6 +47,19 @@ const app = createApp({
   registerWebhook,
 })
 
-serve({ fetch: app.fetch, port: env.PORT }, (info) => {
+const stopWorker = startWorker(
+  { db, clickUp, model: env.STORELOOP_MODEL, shopifyApiVersion: env.SHOPIFY_API_VERSION, shopifyAdminApiToken: env.SHOPIFY_ADMIN_API_TOKEN },
+  env.SHOPIFY_CLI_THEME_TOKEN,
+)
+
+const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   logger.info({ port: info.port }, 'StoreLoop listening')
 })
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    stopWorker()
+    server.close()
+    process.exit(0)
+  })
+}

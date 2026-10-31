@@ -30,7 +30,13 @@ function parseJsonStdout<T>(stdout: string): T {
   // take the JSON object/array, not the raw text, exactly as the spec requires.
   const start = stdout.search(/[[{]/)
   if (start === -1) throw new ThemePushFailedError(`no JSON found in CLI output: ${stdout}`)
-  return JSON.parse(stdout.slice(start)) as T
+  const parsed = JSON.parse(stdout.slice(start)) as T | { error: { message: string } }
+  if (parsed !== null && typeof parsed === 'object' && 'error' in parsed) {
+    // The CLI's own non-interactive abort shape, e.g. `theme check` failing a `--strict` push:
+    // {"error":{"type":"abort","message":"Theme check failed. Please fix the errors before pushing."}}
+    throw new ThemePushFailedError(parsed.error.message)
+  }
+  return parsed as T
 }
 
 /** Pulls the store's live theme into `destDir` — the baseline for a new client git workspace. */
@@ -102,8 +108,17 @@ export async function themeCheck(srcDir: string): Promise<ThemeCheckIssue[]> {
 }
 
 /** Pushes a revision to the same unpublished theme created by an earlier pushUnpublished call. */
-export async function pushToExistingTheme(config: ShopifyCliConfig, srcDir: string, themeId: string): Promise<void> {
-  await run(config, ['theme', 'push', '--theme', themeId, '--path', srcDir, '--strict', '--force', '--json'])
+export async function pushToExistingTheme(
+  config: ShopifyCliConfig,
+  srcDir: string,
+  themeId: string,
+): Promise<PushUnpublishedResult> {
+  const { stdout } = await run(config, ['theme', 'push', '--theme', themeId, '--path', srcDir, '--strict', '--force', '--json'])
+  const parsed = pushJsonSchema.parse(parseJsonStdout(stdout))
+  return {
+    themeId: String(parsed.theme.id),
+    previewUrl: parsed.theme.previewUrl ?? `https://${config.store}?preview_theme_id=${parsed.theme.id}`,
+  }
 }
 
 /**
