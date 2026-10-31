@@ -108,10 +108,21 @@ export async function pushToExistingTheme(config: ShopifyCliConfig, srcDir: stri
 
 /**
  * The only call site in this codebase allowed to run `theme publish` (invariant 2). The caller
- * (src/worker/publish.ts) is responsible for verifying the approved plan hash before calling this.
+ * (src/shopify/publish.ts) is responsible for verifying the approved plan hash before calling this.
  */
 export async function publishTheme(config: ShopifyCliConfig, themeId: string): Promise<void> {
   await run(config, ['theme', 'publish', '--theme', themeId, '--force'])
+}
+
+const themeListSchema = z.object({
+  themes: z.array(z.object({ id: z.union([z.string(), z.number()]), role: z.string() })),
+})
+
+export async function getLiveThemeId(config: ShopifyCliConfig): Promise<string | null> {
+  const { stdout } = await run(config, ['theme', 'list', '--json'])
+  const parsed = themeListSchema.parse(parseJsonStdout(stdout))
+  const live = parsed.themes.find((t) => t.role === 'live')
+  return live ? String(live.id) : null
 }
 
 export async function deleteUnpublishedTheme(config: ShopifyCliConfig, themeId: string): Promise<void> {
