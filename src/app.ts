@@ -4,7 +4,9 @@ import { randomUUID } from 'node:crypto'
 import type Database from 'better-sqlite3'
 import { z } from 'zod'
 import { clickUpWebhookEventSchema, routeEvent, verifySignature } from './webhooks/clickup.js'
-import { recordWebhookEvent, enqueueJob, queueDepth, lastJobAt, getTaskState } from './db.js'
+import { readFile } from 'node:fs/promises'
+import { recordWebhookEvent, enqueueJob, queueDepth, lastJobAt, getTaskState, listRecentJobs, getJob, listAuditForJob } from './db.js'
+import { renderRunsList, renderJobDetail } from './runs/render.js'
 
 export interface AppDeps {
   db: Database.Database
@@ -100,6 +102,34 @@ export function createApp(deps: AppDeps) {
       }
     },
   )
+
+  const runsAuth = basicAuth({ username: deps.adminAuth.user, password: deps.adminAuth.pass })
+
+  app.get('/runs', runsAuth, (c) => {
+    const jobs = listRecentJobs(deps.db, 50)
+    return c.html(renderRunsList(jobs, queueDepth(deps.db), lastJobAt(deps.db)))
+  })
+
+  app.get('/runs/:jobId', runsAuth, (c) => {
+    const job = getJob(deps.db, c.req.param('jobId'))
+    if (!job) return c.text('not found', 404)
+    const audit = listAuditForJob(deps.db, job.id)
+    const screenshotFiles = job.round ? ['before-desktop.png', 'before-mobile.png', 'after-desktop.png', 'after-mobile.png'] : []
+    return c.html(renderJobDetail(job, audit, screenshotFiles))
+  })
+
+  app.get('/runs/:jobId/shot/:name', runsAuth, async (c) => {
+    const job = getJob(deps.db, c.req.param('jobId'))
+    if (!job || !job.round) return c.text('not found', 404)
+    const name = c.req.param('name')
+    if (!/^[\w-]+\.png$/.test(name)) return c.text('not found', 404)
+    try {
+      const bytes = await readFile(`runs/${job.clickupTaskId}/round-${job.round}/${name}`)
+      return c.body(new Uint8Array(bytes), 200, { 'Content-Type': 'image/png' })
+    } catch {
+      return c.text('not found', 404)
+    }
+  })
 
   return app
 }
