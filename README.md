@@ -25,8 +25,10 @@ reasoning behind each piece: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
    Theme Access app installed, a ClickUp workspace with a `Clients` space and a `storeloop-demo`
    list carrying six custom statuses (`agent queue`, `agent working`, `review`, `approved`,
    `live`, `blocked` — ClickUp's API can't create these, add them by hand in the list's status
-   settings), and an Anthropic API key.
-2. `cp .env.example .env` and fill it in. `SHOPIFY_CLI_THEME_TOKEN` is the Theme Access password;
+   settings).
+2. `cp .env.example .env` and fill it in. `ANTHROPIC_API_KEY` is optional — leave it empty to run
+   the agent on the Claude Code CLI's own login on this machine instead of separate API billing.
+   `SHOPIFY_CLI_THEME_TOKEN` is the Theme Access password;
    `SHOPIFY_ADMIN_API_TOKEN` is the custom app's install token, not the OAuth client secret.
 3. **Also disable the dev store's storefront password** (Online Store → Preferences) — otherwise
    every preview/live screenshot and Lighthouse run hits a password wall instead of the theme.

@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
 const schema = z.object({
-  ANTHROPIC_API_KEY: z.string().min(1),
+  // Optional: the Claude Agent SDK spawns the Claude Code CLI as a subprocess, which resolves
+  // its own auth — either this key, or (if unset) whatever login the CLI already has on this
+  // machine (e.g. a Claude.ai subscription session via `claude login`). Only set this if you
+  // want the agent billed on a separate Anthropic API account rather than the CLI's own login.
+  ANTHROPIC_API_KEY: z.string().optional(),
   STORELOOP_MODEL: z.string().default('claude-sonnet-5'),
 
   SHOPIFY_STORE: z.string().min(1).endsWith('.myshopify.com'),
