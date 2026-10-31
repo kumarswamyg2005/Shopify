@@ -1,10 +1,24 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createHmac } from 'node:crypto'
 import Database from 'better-sqlite3'
-import { createApp } from '../src/app.js'
+import { createApp, type AppDeps } from '../src/app.js'
 import { migrate } from '../src/db.js'
 
 const SECRET = 'test-webhook-secret'
+
+function testDeps(overrides: Partial<AppDeps> = {}): AppDeps {
+  const db = new Database(':memory:')
+  migrate(db)
+  return {
+    db,
+    getWebhookSecret: () => SECRET,
+    resolveWebhook: (webhookId) => (webhookId === 'wh_1' ? { clientId: 'storeloop-demo' } : undefined),
+    getCurrentStatus: () => undefined,
+    adminAuth: { user: 'admin', pass: 'admin-pass' },
+    registerWebhook: async () => ({ webhookId: 'wh_new' }),
+    ...overrides,
+  }
+}
 
 function sign(body: string): string {
   return createHmac('sha256', SECRET).update(body).digest('hex')
@@ -33,15 +47,8 @@ describe('POST /webhooks/clickup', () => {
   let currentStatus: string | undefined
 
   beforeEach(() => {
-    const db = new Database(':memory:')
-    migrate(db)
     currentStatus = undefined
-    app = createApp({
-      db,
-      webhookSecret: SECRET,
-      resolveWebhook: (webhookId) => (webhookId === 'wh_1' ? { clientId: 'storeloop-demo' } : undefined),
-      getCurrentStatus: () => currentStatus,
-    })
+    app = createApp(testDeps({ getCurrentStatus: () => currentStatus }))
   })
 
   it('accepts a valid signature and enqueues a job', async () => {
@@ -121,18 +128,38 @@ describe('POST /webhooks/clickup', () => {
 
 describe('GET /health', () => {
   it('reports ok and queue depth', async () => {
-    const db = new Database(':memory:')
-    migrate(db)
-    const app = createApp({
-      db,
-      webhookSecret: SECRET,
-      resolveWebhook: () => ({ clientId: 'storeloop-demo' }),
-      getCurrentStatus: () => undefined,
-    })
+    const app = createApp(testDeps())
     const res = await app.request('/health')
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.ok).toBe(true)
     expect(json.queueDepth).toBe(0)
+  })
+})
+
+describe('POST /admin/register-webhook', () => {
+  it('rejects a request with no basic auth credentials', async () => {
+    const app = createApp(testDeps())
+    const res = await app.request('/admin/register-webhook', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ clientId: 'storeloop-demo', endpointUrl: 'https://example.com/webhooks/clickup' }),
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it('registers a webhook with valid credentials and returns the webhook id, never the secret', async () => {
+    const app = createApp(testDeps())
+    const basic = Buffer.from('admin:admin-pass').toString('base64')
+    const res = await app.request('/admin/register-webhook', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Basic ${basic}` },
+      body: JSON.stringify({ clientId: 'storeloop-demo', endpointUrl: 'https://example.com/webhooks/clickup' }),
+    })
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.ok).toBe(true)
+    expect(json.webhookId).toBe('wh_new')
+    expect(JSON.stringify(json)).not.toContain('secret')
   })
 })

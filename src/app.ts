@@ -1,14 +1,18 @@
 import { Hono } from 'hono'
+import { basicAuth } from 'hono/basic-auth'
 import { randomUUID } from 'node:crypto'
 import type Database from 'better-sqlite3'
+import { z } from 'zod'
 import { clickUpWebhookEventSchema, routeEvent, verifySignature } from './webhooks/clickup.js'
 import { recordWebhookEvent, enqueueJob, queueDepth, lastJobAt } from './db.js'
 
 export interface AppDeps {
   db: Database.Database
-  webhookSecret: string
+  getWebhookSecret: () => string
   resolveWebhook: (webhookId: string) => { clientId: string } | undefined
   getCurrentStatus: (taskId: string) => string | undefined
+  adminAuth: { user: string; pass: string }
+  registerWebhook: (input: { clientId: string; endpointUrl: string }) => Promise<{ webhookId: string }>
 }
 
 function jobKindForApproval(db: Database.Database, taskId: string): 'publish' | 'execute' {
@@ -34,7 +38,7 @@ export function createApp(deps: AppDeps) {
   app.post('/webhooks/clickup', async (c) => {
     const rawBody = await c.req.text()
     const signature = c.req.header('x-signature')
-    if (!verifySignature(rawBody, signature, deps.webhookSecret)) {
+    if (!verifySignature(rawBody, signature, deps.getWebhookSecret())) {
       return c.json({ error: 'invalid signature' }, 401)
     }
 
@@ -72,6 +76,23 @@ export function createApp(deps: AppDeps) {
     enqueueJob(deps.db, { id: randomUUID(), clickupTaskId: event.task_id, kind })
     return c.json({ action: decision.action })
   })
+
+  const registerWebhookBody = z.object({ clientId: z.string(), endpointUrl: z.string().url() })
+
+  app.post(
+    '/admin/register-webhook',
+    basicAuth({ username: deps.adminAuth.user, password: deps.adminAuth.pass }),
+    async (c) => {
+      const parsed = registerWebhookBody.safeParse(await c.req.json())
+      if (!parsed.success) return c.json({ error: 'invalid body' }, 400)
+      try {
+        const { webhookId } = await deps.registerWebhook(parsed.data)
+        return c.json({ ok: true, webhookId })
+      } catch (err) {
+        return c.json({ ok: false, error: (err as Error).message }, 500)
+      }
+    },
+  )
 
   return app
 }

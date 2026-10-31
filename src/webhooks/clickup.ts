@@ -5,9 +5,20 @@ import { STORELOOP_COMMENT_PREFIX } from '../policy.js'
 const historyItemSchema = z.object({
   id: z.string(),
   field: z.string().optional(),
-  after: z.object({ status: z.string() }).partial().optional(),
+  // ClickUp sends `after` as an object ({status: "..."}) for status changes but a bare string
+  // (the new comment id) for comment events — accept either shape, verified against a real
+  // webhook payload.
+  after: z.unknown().optional(),
   comment: z.object({ text_content: z.string().optional() }).optional(),
 })
+
+function statusFromAfter(after: unknown): string | undefined {
+  if (typeof after === 'object' && after !== null && 'status' in after) {
+    const status = (after as { status: unknown }).status
+    return typeof status === 'string' ? status : undefined
+  }
+  return undefined
+}
 
 export const clickUpWebhookEventSchema = z.object({
   event: z.string(),
@@ -59,7 +70,7 @@ export function routeEvent(event: ClickUpWebhookEvent, ctx: RouteContext): Route
   if (!ctx.knownWebhook) return { action: 'ignore', reason: 'unknown webhook/list' }
 
   if (event.event === 'taskStatusUpdated') {
-    const after = event.history_items.find((item) => item.field === 'status')?.after?.status
+    const after = statusFromAfter(event.history_items.find((item) => item.field === 'status')?.after)
     if (after === 'agent queue') return { action: 'enqueue_initial' }
     if (after === 'approved') return { action: 'enqueue_approved' }
     return { action: 'ignore', reason: `status not actionable: ${after ?? 'unknown'}` }

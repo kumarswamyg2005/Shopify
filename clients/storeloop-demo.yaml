@@ -1,0 +1,10 @@
+id: storeloop-demo
+name: StoreLoop demo
+shopifyStore: kumar-test-store.myshopify.com
+clickupListId: "1301070000006983"
+clickupSpaceId: "1301070000005317"
+themeRepoPath: workspaces/storeloop-demo/theme
+brandFilePath: clients/storeloop-demo.brand.md
+allowedTaskTypes:
+  - theme
+  - admin
