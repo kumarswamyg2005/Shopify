@@ -15,7 +15,7 @@ untouched; Lighthouse mobile 61 → 99.
 |---|---|
 | ![before](docs/screenshots/before.png) | ![after](docs/screenshots/after.png) |
 
-2-minute walkthrough video: [docs/storeloop-walkthrough.mp4](docs/storeloop-walkthrough.mp4)
+Walkthrough video (1m40s, narrated): [docs/storeloop-walkthrough.mp4](docs/storeloop-walkthrough.mp4)
 
 ## 60-second architecture
 
