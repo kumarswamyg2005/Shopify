@@ -6,8 +6,7 @@ export async function unlockStorefront(page: Page, url: string): Promise<void> {
   await page.goto(url, { waitUntil: 'load', timeout: 30_000 })
   if (!env.STOREFRONT_PASSWORD || !new URL(page.url()).pathname.startsWith('/password')) return
   await page.fill('input[type=password]', env.STOREFRONT_PASSWORD)
-  await page.keyboard.press('Enter')
-  await page.waitForLoadState('load')
+  await Promise.all([page.waitForNavigation({ timeout: 15_000 }), page.keyboard.press('Enter')])
   await page.goto(url, { waitUntil: 'load', timeout: 30_000 })
 }
 
