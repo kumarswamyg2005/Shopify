@@ -46,7 +46,7 @@ async function run(config: ShopifyCliConfig, args: string[], cwd?: string) {
 
 function parseJsonStdout<T>(stdout: string): T {
   // `shopify theme ... --json` can still print a leading CLI banner line on some setups —
-  // take the JSON object/array, not the raw text, exactly as the spec requires.
+  // take the JSON object/array, not the raw text,.
   const start = stdout.search(/[[{]/)
   if (start === -1) throw new ThemePushFailedError(`no JSON found in CLI output: ${stdout}`)
   const parsed = JSON.parse(stdout.slice(start)) as T | { error: { message: string } }

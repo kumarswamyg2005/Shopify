@@ -31,7 +31,7 @@ reasoning behind each piece: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 
 ## Setup from zero
 
-1. Complete Part 0 of the original build brief: Shopify Partner dev store, Horizon theme
+1. Prerequisites: a Shopify Partner dev store, Horizon theme
    **published live**, a custom app with an Admin API token (`read_products, write_products,
    read_themes, write_themes, read_online_store_navigation, write_online_store_navigation`), the
    Theme Access app installed, a ClickUp workspace with a `Clients` space and a `storeloop-demo`
@@ -60,7 +60,7 @@ reasoning behind each piece: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 7. `npm run seed-tasks` to create the two demo ClickUp tasks, or just move an existing task in
    the `storeloop-demo` list to "agent queue."
 8. `npm test` for the suite; `npm run demo-reset` resets Shopify + ClickUp demo state so you can
-   re-record the Loom.
+   reset the demo state.
 
 ## Demo script
 
@@ -100,3 +100,17 @@ comment on each stub for specifics.
 
 Checkout extensions, Shopify Functions, and destructive bulk edits (delete, price change) are out
 of scope by design — the admin agent's plan schema structurally can't express them.
+
+## Verification status
+
+| Piece | Status |
+|---|---|
+| Webhook signing, dedupe, routing, queue, policy invariants | Unit + integration tests (90 passing, `npm test`) |
+| Theme loop (queue → agent → unpublished theme → screenshots + Lighthouse → ClickUp comment → revision from a comment) | Run live against a Shopify dev store and a ClickUp workspace |
+| Publish on "approved" | Covered by the end-to-end test with a mocked Shopify CLI; not yet run live |
+| Admin plan / execute | Covered by tests against a mocked Admin API; needs `SHOPIFY_ADMIN_API_TOKEN` to run live |
+| `STORELOOP_AGENT=claude` (real LLM agent) | Wired and tested with a mocked SDK; not yet run live. The default `demo` agent is rule-based |
+
+## License
+
+MIT

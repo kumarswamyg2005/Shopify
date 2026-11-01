@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-01
-**Deciders:** solo build (Kumar Swamy)
+**Deciders:** Kumaraswamy G
 
 ## Context
 

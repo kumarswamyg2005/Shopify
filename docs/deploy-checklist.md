@@ -1,4 +1,4 @@
-# Pre-Loom deploy checklist
+# Pre-demo checklist
 
 StoreLoop's "deploy" for this PoC is: clean clone, real credentials, real ClickUp list, real dev
 store. No CI, no staging, no canary — one operator, one laptop. Run this before every recording.

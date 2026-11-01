@@ -26,7 +26,7 @@ export interface CreatedWebhook {
 
 /**
  * Thin typed wrapper around the ClickUp REST API v2. Retries on 429 with exponential backoff
- * (spec: max 5 retries, then the caller should mark the job blocked).
+ * (max 5 retries, then the caller should mark the job blocked).
  */
 export class ClickUpClient {
   private readonly token: string

@@ -21,7 +21,7 @@
   no autoscaling, no SLA.
 
 **Constraints**
-- Stack is locked (see root prompt): TypeScript/Hono/SQLite/Shopify CLI/Claude Agent SDK.
+- Stack: TypeScript/Hono/SQLite/Shopify CLI/Claude Agent SDK.
 - One operator, one store, one ClickUp list, for the demo. Design should not block scaling to
   many clients later, but should not build that now (see ADR 0001, ADR 0002).
 
@@ -93,8 +93,7 @@ without running a separate database service — see ADR 0001.
 
 Handled case-by-case in `docs/adr/` and enforced in `src/policy.ts` + job state machine:
 timeouts, `theme check` failures, throttling/backoff, duplicate webhooks, stale approvals (plan
-hash mismatch), denied agent commands. Full list in the root build prompt's "Required failure
-behaviours" — each becomes a `status='blocked'` job with the reason in the ClickUp comment, not a
+hash mismatch), denied agent commands. Each becomes a `status='blocked'` job with the reason in the ClickUp comment, not a
 silent retry loop.
 
 ## 6. What this does not do (by design, for a PoC)

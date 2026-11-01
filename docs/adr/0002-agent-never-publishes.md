@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-01
-**Deciders:** solo build (Kumar Swamy)
+**Deciders:** Kumaraswamy G
 
 ## Context
 
@@ -54,7 +54,7 @@ from "point Claude Code at a theme repo."
 ## Consequences
 
 - Easier: the thing being demoed to Ben ("the agent can't publish, can't see the admin token")
-  is true by construction, not by instruction, and is provable in the Loom (denied-command log).
+  is true by construction, not by instruction, and is provable from the denied-command log on /runs.
 - Harder: every new theme/admin capability needs an explicit read-only tool or allow-listed
   mutation added by the orchestrator; the agent can't just "figure out" a new Admin API call.
 - Revisit: if a future task type genuinely needs a new mutation, add it to

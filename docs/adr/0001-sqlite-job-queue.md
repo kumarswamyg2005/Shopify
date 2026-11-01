@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-01
-**Deciders:** solo build (Kumar Swamy)
+**Deciders:** Kumaraswamy G
 
 ## Context
 
@@ -48,12 +48,12 @@ in the demo.
 
 ## Trade-off Analysis
 
-The only reason to prefer B is horizontal scale, which this PoC does not need and the Loom does
+The only reason to prefer B is horizontal scale, which this PoC does not need and a demo does
 not demonstrate. A is strictly less work and already gives durability and transactions for free.
 
 ## Consequences
 
-- Easier: zero extra infra to run or explain in the Loom; one `npm run dev` is the whole system.
+- Easier: zero extra infra to run or explain; one `npm run dev` is the whole system.
 - Harder: adding a second concurrent worker later requires a real queue migration, not a config
   flag.
 - Revisit: when there's more than one client with overlapping heavy jobs, move the queue to a
