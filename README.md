@@ -5,6 +5,18 @@ can see yet — an unpublished theme, or a dry-run admin plan — and posts a pr
 same task for a human to approve or correct. Nothing goes live until someone on your team moves
 the card. Built for a Shopify Plus agency running retainer work through ClickUp.
 
+## See it run
+
+A real run on a Shopify dev store: the card was moved to "agent queue", the agent edited an
+unpublished theme, and a revision comment ("make it uppercase") produced round 2. Live theme
+untouched; Lighthouse mobile 61 → 99.
+
+| Live theme (before) | Unpublished preview (after) |
+|---|---|
+| ![before](docs/screenshots/before.png) | ![after](docs/screenshots/after.png) |
+
+2-minute walkthrough video: [docs/storeloop-walkthrough.mp4](docs/storeloop-walkthrough.mp4)
+
 ## 60-second architecture
 
 A ClickUp webhook (task moved to "agent queue", or a comment on a task in "review") hits a small
